@@ -1,9 +1,11 @@
+import logging
 import httpx
 from datetime import datetime
 from config import get_settings
 from models import Monitor
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 
 async def send_down_alert(monitor: Monitor, error_message: str | None):
@@ -23,9 +25,13 @@ async def send_down_alert(monitor: Monitor, error_message: str | None):
 
     try:
         async with httpx.AsyncClient() as client:
-            await client.post(settings.discord_webhook_url, json=payload)
-    except Exception:
-        pass  # Don't fail health checks due to alert failures
+            response = await client.post(settings.discord_webhook_url, json=payload)
+            if response.status_code not in (200, 204):
+                logger.error("Discord down alert failed: HTTP %s — %s", response.status_code, response.text)
+            else:
+                logger.info("Discord down alert sent for monitor '%s'", monitor.name)
+    except Exception as e:
+        logger.error("Discord down alert error for monitor '%s': %s", monitor.name, e)
 
 
 async def send_recovery_alert(monitor: Monitor):
@@ -45,6 +51,10 @@ async def send_recovery_alert(monitor: Monitor):
 
     try:
         async with httpx.AsyncClient() as client:
-            await client.post(settings.discord_webhook_url, json=payload)
-    except Exception:
-        pass
+            response = await client.post(settings.discord_webhook_url, json=payload)
+            if response.status_code not in (200, 204):
+                logger.error("Discord recovery alert failed: HTTP %s — %s", response.status_code, response.text)
+            else:
+                logger.info("Discord recovery alert sent for monitor '%s'", monitor.name)
+    except Exception as e:
+        logger.error("Discord recovery alert error for monitor '%s': %s", monitor.name, e)

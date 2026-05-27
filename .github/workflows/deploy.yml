@@ -1,0 +1,39 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag to deploy'
+        required: true
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'development'
+      deployment_id:
+        description: 'ServiceForge deployment ID (for status callback)'
+        required: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Print deployment info
+        run: |
+          echo "🚀 Deploying version: ${{ inputs.version }}"
+          echo "🌍 Environment: ${{ inputs.environment }}"
+          echo "🔗 ServiceForge deployment ID: ${{ inputs.deployment_id }}"
+
+      - name: Simulate build
+        run: |
+          echo "Building Docker image watchtower:${{ inputs.version }}..."
+          sleep 3
+          echo "✅ Build complete"
+
+      - name: Simulate deploy
+        run: |
+          echo "Deploying to ${{ inputs.environment }}..."
+          sleep 2
+          echo "✅ Deploy complete"

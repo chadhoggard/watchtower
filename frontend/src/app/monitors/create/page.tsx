@@ -1,4 +1,4 @@
-import CreateMonitorForm from '@/components/CreateMonitorForm';
+import CreateMonitorForm from "@/components/CreateMonitorForm";
 
 export default function CreateMonitorPage() {
   return (

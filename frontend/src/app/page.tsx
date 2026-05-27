@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { DashboardResponse } from '@/types';
-import { getDashboard } from '@/lib/api';
-import MonitorCard from '@/components/MonitorCard';
+import { useEffect, useState } from "react";
+import { DashboardResponse } from "@/types";
+import { getDashboard } from "@/lib/api";
+import MonitorCard from "@/components/MonitorCard";
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
     loadDashboard();
@@ -20,9 +20,9 @@ export default function DashboardPage() {
     try {
       const dashboard = await getDashboard();
       setData(dashboard);
-      setError('');
+      setError("");
     } catch (err: any) {
-      setError(err.message || 'Failed to load dashboard');
+      setError(err.message || "Failed to load dashboard");
     } finally {
       setLoading(false);
     }
@@ -62,15 +62,21 @@ export default function DashboardPage() {
       <div className="grid grid-cols-4 gap-4 mb-8">
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <p className="text-sm text-gray-500">Total Monitors</p>
-          <p className="text-2xl font-bold text-gray-900">{data.total_monitors}</p>
+          <p className="text-2xl font-bold text-gray-900">
+            {data.total_monitors}
+          </p>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <p className="text-sm text-gray-500">Healthy</p>
-          <p className="text-2xl font-bold text-green-600">{data.healthy_count}</p>
+          <p className="text-2xl font-bold text-green-600">
+            {data.healthy_count}
+          </p>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <p className="text-sm text-gray-500">Degraded</p>
-          <p className="text-2xl font-bold text-yellow-600">{data.degraded_count}</p>
+          <p className="text-2xl font-bold text-yellow-600">
+            {data.degraded_count}
+          </p>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <p className="text-sm text-gray-500">Down</p>

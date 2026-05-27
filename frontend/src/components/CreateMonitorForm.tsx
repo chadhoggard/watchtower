@@ -1,34 +1,34 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { MonitorCreate } from '@/types';
-import { createMonitor } from '@/lib/api';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { MonitorCreate } from "@/types";
+import { createMonitor } from "@/lib/api";
 
 export default function CreateMonitorForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [form, setForm] = useState<MonitorCreate>({
-    name: '',
-    url: '',
-    http_method: 'GET',
+    name: "",
+    url: "",
+    http_method: "GET",
     expected_status_code: 200,
     check_interval_minutes: 5,
-    environment: 'prod',
-    description: '',
+    environment: "prod",
+    description: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
       await createMonitor(form);
-      router.push('/');
+      router.push("/");
     } catch (err: any) {
-      setError(err.message || 'Failed to create monitor');
+      setError(err.message || "Failed to create monitor");
     } finally {
       setLoading(false);
     }
@@ -43,7 +43,9 @@ export default function CreateMonitorForm() {
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Name
+        </label>
         <input
           type="text"
           required
@@ -55,7 +57,9 @@ export default function CreateMonitorForm() {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">URL</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          URL
+        </label>
         <input
           type="url"
           required
@@ -68,7 +72,9 @@ export default function CreateMonitorForm() {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">HTTP Method</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            HTTP Method
+          </label>
           <select
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={form.http_method}
@@ -82,35 +88,53 @@ export default function CreateMonitorForm() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Expected Status</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Expected Status
+          </label>
           <input
             type="number"
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={form.expected_status_code}
-            onChange={(e) => setForm({ ...form, expected_status_code: parseInt(e.target.value) })}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                expected_status_code: parseInt(e.target.value),
+              })
+            }
           />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Check Interval (min)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Check Interval (min)
+          </label>
           <input
             type="number"
             min="1"
             max="1440"
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={form.check_interval_minutes}
-            onChange={(e) => setForm({ ...form, check_interval_minutes: parseInt(e.target.value) })}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                check_interval_minutes: parseInt(e.target.value),
+              })
+            }
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Environment</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Environment
+          </label>
           <select
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={form.environment}
-            onChange={(e) => setForm({ ...form, environment: e.target.value as any })}
+            onChange={(e) =>
+              setForm({ ...form, environment: e.target.value as any })
+            }
           >
             <option value="dev">Dev</option>
             <option value="staging">Staging</option>
@@ -120,7 +144,9 @@ export default function CreateMonitorForm() {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Description
+        </label>
         <textarea
           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           rows={3}
@@ -135,7 +161,7 @@ export default function CreateMonitorForm() {
         disabled={loading}
         className="w-full bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
       >
-        {loading ? 'Creating...' : 'Create Monitor'}
+        {loading ? "Creating..." : "Create Monitor"}
       </button>
     </form>
   );

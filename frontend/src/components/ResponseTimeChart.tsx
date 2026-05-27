@@ -1,4 +1,4 @@
-import { HealthCheck } from '@/types';
+import { HealthCheck } from "@/types";
 
 interface ResponseTimeChartProps {
   checks: HealthCheck[];
@@ -6,7 +6,9 @@ interface ResponseTimeChartProps {
 
 export default function ResponseTimeChart({ checks }: ResponseTimeChartProps) {
   if (checks.length === 0) {
-    return <p className="text-gray-500 text-sm">No response time data available.</p>;
+    return (
+      <p className="text-gray-500 text-sm">No response time data available.</p>
+    );
   }
 
   const sortedChecks = [...checks].reverse();
@@ -15,17 +17,19 @@ export default function ResponseTimeChart({ checks }: ResponseTimeChartProps) {
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <h3 className="text-sm font-medium text-gray-700 mb-3">Response Time (ms)</h3>
+      <h3 className="text-sm font-medium text-gray-700 mb-3">
+        Response Time (ms)
+      </h3>
       <div className="flex items-end gap-1 h-[120px]">
         {sortedChecks.slice(-30).map((check, i) => {
           const time = check.response_time_ms || 0;
           const height = maxTime > 0 ? (time / maxTime) * chartHeight : 0;
           const color =
-            check.status === 'healthy'
-              ? 'bg-green-400'
-              : check.status === 'degraded'
-              ? 'bg-yellow-400'
-              : 'bg-red-400';
+            check.status === "healthy"
+              ? "bg-green-400"
+              : check.status === "degraded"
+                ? "bg-yellow-400"
+                : "bg-red-400";
 
           return (
             <div

@@ -1,13 +1,19 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { Monitor, HealthCheck, Incident } from '@/types';
-import { getMonitor, getHealthChecks, getMonitorIncidents, triggerHealthCheck, deleteMonitor } from '@/lib/api';
-import StatusBadge from '@/components/StatusBadge';
-import HealthCheckTable from '@/components/HealthCheckTable';
-import IncidentTable from '@/components/IncidentTable';
-import ResponseTimeChart from '@/components/ResponseTimeChart';
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { Monitor, HealthCheck, Incident } from "@/types";
+import {
+  getMonitor,
+  getHealthChecks,
+  getMonitorIncidents,
+  triggerHealthCheck,
+  deleteMonitor,
+} from "@/lib/api";
+import StatusBadge from "@/components/StatusBadge";
+import HealthCheckTable from "@/components/HealthCheckTable";
+import IncidentTable from "@/components/IncidentTable";
+import ResponseTimeChart from "@/components/ResponseTimeChart";
 
 export default function MonitorDetailPage() {
   const params = useParams();
@@ -54,10 +60,10 @@ export default function MonitorDetailPage() {
   }
 
   async function handleDelete() {
-    if (!confirm('Are you sure you want to delete this monitor?')) return;
+    if (!confirm("Are you sure you want to delete this monitor?")) return;
     try {
       await deleteMonitor(monitorId);
-      router.push('/');
+      router.push("/");
     } catch (err) {
       console.error(err);
     }
@@ -91,7 +97,7 @@ export default function MonitorDetailPage() {
             disabled={triggering}
             className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
-            {triggering ? 'Checking...' : 'Run Check'}
+            {triggering ? "Checking..." : "Run Check"}
           </button>
           <button
             onClick={handleDelete}
@@ -131,13 +137,17 @@ export default function MonitorDetailPage() {
 
       {/* Health Checks */}
       <div className="bg-white rounded-lg border border-gray-200 p-5 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Health Checks</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          Recent Health Checks
+        </h2>
         <HealthCheckTable checks={checks} />
       </div>
 
       {/* Incidents */}
       <div className="bg-white rounded-lg border border-gray-200 p-5">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Incident History</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          Incident History
+        </h2>
         <IncidentTable incidents={incidents} />
       </div>
     </div>

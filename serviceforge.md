@@ -8,10 +8,10 @@ This document describes how Watchtower will be registered, built, deployed, heal
 
 Watchtower will be registered in ServiceForge as two services:
 
-| Service | Type | Runtime | Port |
-|---------|------|---------|------|
-| `watchtower-api` | Backend API | Python 3.11 (FastAPI) | 8000 |
-| `watchtower-frontend` | Web App | Node.js 20 (Next.js) | 3000 |
+| Service               | Type        | Runtime               | Port |
+| --------------------- | ----------- | --------------------- | ---- |
+| `watchtower-api`      | Backend API | Python 3.11 (FastAPI) | 8000 |
+| `watchtower-frontend` | Web App     | Node.js 20 (Next.js)  | 3000 |
 
 ### Registration Metadata
 
@@ -90,7 +90,10 @@ ServiceForge generates the ECS task definition:
         { "name": "CORS_ORIGINS", "value": "https://status.example.com" }
       ],
       "healthCheck": {
-        "command": ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"],
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:8000/api/health || exit 1"
+        ],
         "interval": 30,
         "timeout": 5,
         "retries": 3
@@ -136,6 +139,7 @@ GET /api/health → 200 { "status": "healthy", "service": "watchtower-api" }
 ### ServiceForge Deep Health Check
 
 ServiceForge periodically verifies:
+
 - API responds on `/api/health`
 - Database connectivity (implicit in API health)
 - Scheduler is running (check for recent health check records)
@@ -156,17 +160,18 @@ All container stdout/stderr streams to CloudWatch Log Groups:
 
 ServiceForge configures alarms for:
 
-| Metric | Threshold | Action |
-|--------|-----------|--------|
-| CPU Utilization | > 80% for 5 min | Scale out |
-| Memory Utilization | > 85% for 5 min | Alert |
-| 5xx Error Rate | > 5% for 2 min | Alert + potential rollback |
-| Response Time (p99) | > 2000ms for 5 min | Alert |
-| Task Count | < desired count | Alert |
+| Metric              | Threshold          | Action                     |
+| ------------------- | ------------------ | -------------------------- |
+| CPU Utilization     | > 80% for 5 min    | Scale out                  |
+| Memory Utilization  | > 85% for 5 min    | Alert                      |
+| 5xx Error Rate      | > 5% for 2 min     | Alert + potential rollback |
+| Response Time (p99) | > 2000ms for 5 min | Alert                      |
+| Task Count          | < desired count    | Alert                      |
 
 ### ServiceForge Dashboard
 
 ServiceForge displays:
+
 - Deployment history with timestamps and image tags
 - Current running version per environment
 - Health check status
@@ -180,6 +185,7 @@ ServiceForge displays:
 ### Automatic Rollback
 
 ServiceForge triggers automatic rollback when:
+
 - New tasks fail health checks within 5 minutes of deployment
 - 5xx error rate exceeds 10% within 3 minutes post-deploy
 - Container crashes repeatedly (exit code != 0)
@@ -205,12 +211,12 @@ serviceforge rollback watchtower-api --environment prod --to-version <previous-s
 
 ### Environment Variables (Managed by ServiceForge)
 
-| Variable | Source | Environments |
-|----------|--------|--------------|
-| `DATABASE_URL` | AWS Secrets Manager | all |
-| `DISCORD_WEBHOOK_URL` | AWS Secrets Manager | staging, prod |
-| `CORS_ORIGINS` | ServiceForge config | all |
-| `DEGRADED_THRESHOLD_MS` | ServiceForge config | all |
+| Variable                | Source              | Environments  |
+| ----------------------- | ------------------- | ------------- |
+| `DATABASE_URL`          | AWS Secrets Manager | all           |
+| `DISCORD_WEBHOOK_URL`   | AWS Secrets Manager | staging, prod |
+| `CORS_ORIGINS`          | ServiceForge config | all           |
+| `DEGRADED_THRESHOLD_MS` | ServiceForge config | all           |
 
 ### Secrets Rotation
 
@@ -241,7 +247,7 @@ ServiceForge updates ECS task definition
     ↓
 ECS rolls out new tasks (rolling deployment)
     ↓
-Health checks pass? 
+Health checks pass?
     ├── YES → Deployment complete, old tasks drained
     └── NO  → Automatic rollback to previous version
     ↓

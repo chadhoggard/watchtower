@@ -5,9 +5,9 @@ export interface Monitor {
   http_method: string;
   expected_status_code: number;
   check_interval_minutes: number;
-  environment: 'dev' | 'staging' | 'prod';
+  environment: "dev" | "staging" | "prod";
   description: string | null;
-  current_status: 'healthy' | 'degraded' | 'down' | 'unknown';
+  current_status: "healthy" | "degraded" | "down" | "unknown";
   created_at: string;
   updated_at: string;
 }
@@ -18,14 +18,14 @@ export interface MonitorCreate {
   http_method: string;
   expected_status_code: number;
   check_interval_minutes: number;
-  environment: 'dev' | 'staging' | 'prod';
+  environment: "dev" | "staging" | "prod";
   description?: string;
 }
 
 export interface HealthCheck {
   id: string;
   monitor_id: string;
-  status: 'healthy' | 'degraded' | 'down' | 'unknown';
+  status: "healthy" | "degraded" | "down" | "unknown";
   http_status_code: number | null;
   response_time_ms: number | null;
   error_message: string | null;
@@ -35,7 +35,7 @@ export interface HealthCheck {
 export interface Incident {
   id: string;
   monitor_id: string;
-  status: 'ongoing' | 'resolved';
+  status: "ongoing" | "resolved";
   started_at: string;
   resolved_at: string | null;
   duration_seconds: number | null;
@@ -46,8 +46,8 @@ export interface MonitorDashboardItem {
   id: string;
   name: string;
   url: string;
-  environment: 'dev' | 'staging' | 'prod';
-  current_status: 'healthy' | 'degraded' | 'down' | 'unknown';
+  environment: "dev" | "staging" | "prod";
+  current_status: "healthy" | "degraded" | "down" | "unknown";
   latest_response_time_ms: number | null;
   uptime_percentage: number;
   last_checked_at: string | null;
@@ -64,12 +64,12 @@ export interface DashboardResponse {
 export interface StatusPageMonitor {
   name: string;
   url: string;
-  environment: 'dev' | 'staging' | 'prod';
-  current_status: 'healthy' | 'degraded' | 'down' | 'unknown';
+  environment: "dev" | "staging" | "prod";
+  current_status: "healthy" | "degraded" | "down" | "unknown";
   uptime_percentage: number;
 }
 
 export interface StatusPageResponse {
-  overall_status: 'All Systems Operational' | 'Partial Outage' | 'Major Outage';
+  overall_status: "All Systems Operational" | "Partial Outage" | "Major Outage";
   monitors: StatusPageMonitor[];
 }

@@ -81,26 +81,27 @@ docker compose up --build
 
 ## API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/health` | API health check |
-| POST | `/api/monitors/` | Create a monitor |
-| GET | `/api/monitors/` | List all monitors |
-| GET | `/api/monitors/{id}` | Get monitor details |
-| PUT | `/api/monitors/{id}` | Update a monitor |
-| DELETE | `/api/monitors/{id}` | Delete a monitor |
-| GET | `/api/health-checks/{monitor_id}` | Get health check history |
-| POST | `/api/health-checks/{monitor_id}/trigger` | Trigger manual check |
-| GET | `/api/incidents/` | List all incidents |
-| GET | `/api/incidents/{monitor_id}` | Get monitor incidents |
-| GET | `/api/dashboard` | Get dashboard data |
-| GET | `/api/status` | Get public status page |
+| Method | Endpoint                                  | Description              |
+| ------ | ----------------------------------------- | ------------------------ |
+| GET    | `/api/health`                             | API health check         |
+| POST   | `/api/monitors/`                          | Create a monitor         |
+| GET    | `/api/monitors/`                          | List all monitors        |
+| GET    | `/api/monitors/{id}`                      | Get monitor details      |
+| PUT    | `/api/monitors/{id}`                      | Update a monitor         |
+| DELETE | `/api/monitors/{id}`                      | Delete a monitor         |
+| GET    | `/api/health-checks/{monitor_id}`         | Get health check history |
+| POST   | `/api/health-checks/{monitor_id}/trigger` | Trigger manual check     |
+| GET    | `/api/incidents/`                         | List all incidents       |
+| GET    | `/api/incidents/{monitor_id}`             | Get monitor incidents    |
+| GET    | `/api/dashboard`                          | Get dashboard data       |
+| GET    | `/api/status`                             | Get public status page   |
 
 ## Example Monitors to Test
 
 After starting the app, create these monitors through the UI or API:
 
 ### Google Homepage
+
 ```json
 {
   "name": "Google",
@@ -113,6 +114,7 @@ After starting the app, create these monitors through the UI or API:
 ```
 
 ### GitHub
+
 ```json
 {
   "name": "GitHub",
@@ -125,6 +127,7 @@ After starting the app, create these monitors through the UI or API:
 ```
 
 ### Watchtower API (self-monitoring)
+
 ```json
 {
   "name": "Watchtower API",
