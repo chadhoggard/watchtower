@@ -9,6 +9,14 @@ on:
         description: "Version tag (e.g. v1.2.0)"
         required: false
         default: ""
+      environment:
+        description: "Target environment"
+        required: false
+        default: "production"
+      deployment_id:
+        description: "ServiceForge deployment ID to update on completion"
+        required: false
+        default: ""
 
 env:
   AWS_REGION: us-east-1
@@ -41,6 +49,12 @@ jobs:
         id: register
         run: |
           COMMIT_MSG="$(git log --format=%s -n 1 ${{ github.sha }})"
+
+          # If triggered from ServiceForge UI, the deployment record already exists
+          if [ -n "${{ github.event.inputs.deployment_id }}" ]; then
+            echo "deployment_id=${{ github.event.inputs.deployment_id }}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
 
           # Skip ServiceForge registration if service ID not configured
           if [ -z "${{ env.SERVICEFORGE_SERVICE_ID }}" ]; then
