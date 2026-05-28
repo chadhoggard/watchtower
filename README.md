@@ -2,6 +2,34 @@
 
 API uptime monitoring platform. Register websites or API endpoints, run scheduled health checks, track uptime and response times, create incidents when services go down, and view everything on a clean dashboard and public status page.
 
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         AWS (us-east-1)                          │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                    Application Load Balancer              │   │
+│  │         /api/* /docs → Backend    /* → Frontend          │   │
+│  └──────────────┬──────────────────────────┬────────────────┘   │
+│                 │                          │                     │
+│  ┌──────────────▼──────────┐  ┌───────────▼─────────────────┐  │
+│  │   ECS Fargate (Backend) │  │   ECS Fargate (Frontend)    │  │
+│  │   FastAPI :8001         │  │   Next.js :3001             │  │
+│  │   Private Subnet        │  │   Public Subnet             │  │
+│  └──────────────┬──────────┘  └─────────────────────────────┘  │
+│                 │                                                │
+│  ┌──────────────▼──────────┐  ┌─────────────────────────────┐  │
+│  │   RDS PostgreSQL 15     │  │   Secrets Manager           │  │
+│  │   Private Subnet        │  │   DB creds / JWT / API key  │  │
+│  └─────────────────────────┘  │   Discord webhook URL       │  │
+│                               └─────────────────────────────┘  │
+│  ┌─────────────────────────┐  ┌─────────────────────────────┐  │
+│  │   ECR (Container Repos) │  │   CloudWatch (Logs/Alarms)  │  │
+│  └─────────────────────────┘  └─────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
 ## Tech Stack
 
 - **Frontend:** Next.js 14 with TypeScript and Tailwind CSS
@@ -9,6 +37,8 @@ API uptime monitoring platform. Register websites or API endpoints, run schedule
 - **Database:** PostgreSQL 15
 - **Background Jobs:** APScheduler
 - **Containerization:** Docker and Docker Compose
+- **Infrastructure:** Terraform (AWS ECS Fargate, RDS, ALB, ECR, CloudWatch)
+- **CI/CD:** GitHub Actions → ECR → ECS
 
 ## Features
 
@@ -186,6 +216,54 @@ watchtower/
         ├── types/index.ts
         └── lib/api.ts
 ```
+
+## Deployment
+
+### AWS Infrastructure
+
+Watchtower runs on AWS with fully isolated infrastructure managed by Terraform:
+
+| Resource | Details |
+|----------|---------|
+| **Region** | us-east-1 |
+| **VPC** | 10.1.0.0/16 (separate from ServiceForge) |
+| **ECS Cluster** | watchtower-production-cluster (Fargate) |
+| **RDS** | PostgreSQL 15 (db.t3.micro, private subnet) |
+| **ALB** | Path-based routing on port 80 |
+| **ECR** | watchtower-backend, watchtower-frontend |
+| **CloudWatch** | CPU/Memory/5xx alarms + dashboard |
+
+### Deploy via CI/CD
+
+Every push to `main` triggers the GitHub Actions workflow:
+
+1. **Register** — creates a deployment record in ServiceForge
+2. **Build** — backend + frontend images built in parallel, pushed to ECR
+3. **Deploy** — ECS task definitions updated, services rolled out
+4. **Callback** — deployment status reported back to ServiceForge
+
+Manual deploys: use `workflow_dispatch` with an optional version tag.
+
+### Terraform Commands
+
+```bash
+cd infra/
+terraform init
+terraform plan
+terraform apply
+
+# Get the ALB URL
+terraform output alb_dns_name
+
+# Get the API key secret ARN (retrieve value for GitHub Actions secret)
+terraform output api_key_secret_arn
+```
+
+### Post-Deploy Checklist
+
+1. Retrieve the API key from Secrets Manager and add as `WATCHTOWER_API_KEY` GitHub secret
+2. Add your Discord webhook URL to the `watchtower-production/discord-webhook-url` secret in AWS Secrets Manager
+3. Push to `main` to trigger the first real deployment
 
 ## Deployment Roadmap
 

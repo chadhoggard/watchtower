@@ -1,39 +1,283 @@
-name: Deploy
+name: Deploy to AWS ECS
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag to deploy'
-        required: true
-      environment:
-        description: 'Target environment'
-        required: true
-        default: 'development'
-      deployment_id:
-        description: 'ServiceForge deployment ID (for status callback)'
+        description: "Version tag (e.g. v1.2.0)"
         required: false
+        default: ""
+
+env:
+  AWS_REGION: us-east-1
+  ECR_BACKEND_REPO: watchtower-backend
+  ECR_FRONTEND_REPO: watchtower-frontend
+  ECS_CLUSTER: watchtower-production-cluster
+  BACKEND_SERVICE: watchtower-production-backend
+  FRONTEND_SERVICE: watchtower-production-frontend
+  BACKEND_TASK_FAMILY: watchtower-production-backend
+  FRONTEND_TASK_FAMILY: watchtower-production-frontend
+  SERVICEFORGE_API: http://serviceforge-production-alb-1977889151.us-east-1.elb.amazonaws.com
+  SERVICEFORGE_SERVICE_ID: ""
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  deploy:
+  # ── Register deployment record ───────────────────────────────────────────
+  register-deployment:
+    name: Register Deployment
     runs-on: ubuntu-latest
+    outputs:
+      deployment_id: ${{ steps.register.outputs.deployment_id }}
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-      - name: Print deployment info
+      - name: Create deployment record
+        id: register
         run: |
-          echo "🚀 Deploying version: ${{ inputs.version }}"
-          echo "🌍 Environment: ${{ inputs.environment }}"
-          echo "🔗 ServiceForge deployment ID: ${{ inputs.deployment_id }}"
+          COMMIT_MSG="$(git log --format=%s -n 1 ${{ github.sha }})"
 
-      - name: Simulate build
-        run: |
-          echo "Building Docker image watchtower:${{ inputs.version }}..."
-          sleep 3
-          echo "✅ Build complete"
+          # Skip ServiceForge registration if service ID not configured
+          if [ -z "${{ env.SERVICEFORGE_SERVICE_ID }}" ]; then
+            echo "deployment_id=" >> $GITHUB_OUTPUT
+            echo "No ServiceForge service ID configured, skipping registration"
+            exit 0
+          fi
 
-      - name: Simulate deploy
+          DEPLOYMENTS="$(curl -sfL "${{ env.SERVICEFORGE_API }}/api/deployments/service/${{ env.SERVICEFORGE_SERVICE_ID }}/" \
+            -H "X-Api-Key: ${{ secrets.SERVICEFORGE_API_KEY }}")" || true
+
+          LATEST_VERSION="$(echo "$DEPLOYMENTS" | jq -r '[.[] | select(.version | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))] | sort_by(.version) | last | .version // "v1.0.0"' 2>/dev/null || echo "v1.0.0")"
+
+          PATCH="${LATEST_VERSION##*.}"
+          PREFIX="${LATEST_VERSION%.*}"
+          NEXT_VERSION="${PREFIX}.$((PATCH + 1))"
+
+          PAYLOAD="$(jq -n \
+            --arg service_id "${{ env.SERVICEFORGE_SERVICE_ID }}" \
+            --arg version "$NEXT_VERSION" \
+            --arg commit_sha "${{ github.sha }}" \
+            --arg environment "production" \
+            --arg status "building" \
+            --arg notes "${COMMIT_MSG} (run ${{ github.run_id }})" \
+            '{service_id: $service_id, version: $version, commit_sha: $commit_sha, environment: $environment, status: $status, notes: $notes}')"
+
+          RESPONSE="$(curl -sf -X POST \
+            "${{ env.SERVICEFORGE_API }}/api/deployments/" \
+            -H "Content-Type: application/json" \
+            -H "X-Api-Key: ${{ secrets.SERVICEFORGE_API_KEY }}" \
+            -d "$PAYLOAD" || echo '{}')"
+
+          DEPLOYMENT_ID="$(echo "$RESPONSE" | jq -r '.id // empty')"
+          echo "deployment_id=${DEPLOYMENT_ID}" >> $GITHUB_OUTPUT
+
+  # ── Build & push backend ─────────────────────────────────────────────────
+  build-backend:
+    name: Build & Push Backend
+    runs-on: ubuntu-latest
+    needs: [register-deployment]
+    outputs:
+      image_uri: ${{ steps.image.outputs.uri }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image tag
+        id: tag
         run: |
-          echo "Deploying to ${{ inputs.environment }}..."
-          sleep 2
-          echo "✅ Deploy complete"
+          VERSION="${{ github.event.inputs.version }}"
+          if [ -z "$VERSION" ]; then
+            VERSION="${{ github.sha }}"
+          fi
+          echo "tag=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Build & push backend image
+        id: image
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          IMAGE_URI="${REGISTRY}/${{ env.ECR_BACKEND_REPO }}:${TAG}"
+          docker build -t "$IMAGE_URI" ./backend
+          docker push "$IMAGE_URI"
+          docker tag "$IMAGE_URI" "${REGISTRY}/${{ env.ECR_BACKEND_REPO }}:latest"
+          docker push "${REGISTRY}/${{ env.ECR_BACKEND_REPO }}:latest"
+          echo "uri=${IMAGE_URI}" >> $GITHUB_OUTPUT
+
+  # ── Build & push frontend ────────────────────────────────────────────────
+  build-frontend:
+    name: Build & Push Frontend
+    runs-on: ubuntu-latest
+    needs: [register-deployment]
+    outputs:
+      image_uri: ${{ steps.image.outputs.uri }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image tag
+        id: tag
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if [ -z "$VERSION" ]; then
+            VERSION="${{ github.sha }}"
+          fi
+          echo "tag=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Build & push frontend image
+        id: image
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          IMAGE_URI="${REGISTRY}/${{ env.ECR_FRONTEND_REPO }}:${TAG}"
+          docker build -t "$IMAGE_URI" ./frontend
+          docker push "$IMAGE_URI"
+          docker tag "$IMAGE_URI" "${REGISTRY}/${{ env.ECR_FRONTEND_REPO }}:latest"
+          docker push "${REGISTRY}/${{ env.ECR_FRONTEND_REPO }}:latest"
+          echo "uri=${IMAGE_URI}" >> $GITHUB_OUTPUT
+
+  # ── Deploy backend to ECS ────────────────────────────────────────────────
+  deploy-backend:
+    name: Deploy Backend
+    runs-on: ubuntu-latest
+    needs: [build-backend]
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download current task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.BACKEND_TASK_FAMILY }} \
+            --query taskDefinition \
+            > task-def-backend.json
+
+      - name: Update image in task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-def-backend.json
+          container-name: backend
+          image: ${{ needs.build-backend.outputs.image_uri }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.BACKEND_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+  # ── Deploy frontend to ECS ───────────────────────────────────────────────
+  deploy-frontend:
+    name: Deploy Frontend
+    runs-on: ubuntu-latest
+    needs: [build-frontend]
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download current task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.FRONTEND_TASK_FAMILY }} \
+            --query taskDefinition \
+            > task-def-frontend.json
+
+      - name: Update image in task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-def-frontend.json
+          container-name: frontend
+          image: ${{ needs.build-frontend.outputs.image_uri }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.FRONTEND_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+  # ── Callback to ServiceForge ─────────────────────────────────────────────
+  notify-serviceforge:
+    name: Update ServiceForge Deployment
+    runs-on: ubuntu-latest
+    needs: [register-deployment, deploy-backend, deploy-frontend]
+    if: always() && needs.register-deployment.outputs.deployment_id != ''
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Determine final status
+        id: status
+        run: |
+          BACKEND="${{ needs.deploy-backend.result }}"
+          FRONTEND="${{ needs.deploy-frontend.result }}"
+          COMMIT_MSG="$(git log --format=%s -n 1 ${{ github.sha }})"
+          if [ "$BACKEND" = "success" ] && [ "$FRONTEND" = "success" ]; then
+            echo "status=succeeded" >> $GITHUB_OUTPUT
+            echo "notes=✅ ${COMMIT_MSG} — deployed backend and frontend (run ${{ github.run_id }})" >> $GITHUB_OUTPUT
+          else
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "notes=❌ ${COMMIT_MSG} — backend: ${BACKEND}, frontend: ${FRONTEND} (run ${{ github.run_id }})" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Patch ServiceForge deployment record
+        run: |
+          FINISHED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          PAYLOAD="$(jq -n \
+            --arg status "${{ steps.status.outputs.status }}" \
+            --arg notes "${{ steps.status.outputs.notes }}" \
+            --arg commit_sha "${{ github.sha }}" \
+            --arg finished_at "$FINISHED_AT" \
+            '{status: $status, notes: $notes, commit_sha: $commit_sha, finished_at: $finished_at}')"
+          curl -s -X PATCH \
+            "${{ env.SERVICEFORGE_API }}/api/deployments/${{ needs.register-deployment.outputs.deployment_id }}" \
+            -H "Content-Type: application/json" \
+            -H "X-Api-Key: ${{ secrets.SERVICEFORGE_API_KEY }}" \
+            -d "$PAYLOAD"

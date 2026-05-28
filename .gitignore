@@ -18,6 +18,12 @@ frontend/out/
 # Docker volumes
 postgres_data/
 
+# Terraform
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.backup
+infra/tfplan
+
 # OS
 .DS_Store
 Thumbs.db
