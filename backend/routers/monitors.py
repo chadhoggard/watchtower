@@ -6,12 +6,13 @@ from uuid import UUID
 from database import get_db
 from models import Monitor
 from schemas import MonitorCreate, MonitorUpdate, MonitorResponse
+from utils.auth import get_current_user
 
 router = APIRouter(prefix="/api/monitors", tags=["monitors"])
 
 
 @router.post("/", response_model=MonitorResponse, status_code=201)
-async def create_monitor(monitor_data: MonitorCreate, db: AsyncSession = Depends(get_db)):
+async def create_monitor(monitor_data: MonitorCreate, db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
     monitor = Monitor(**monitor_data.model_dump())
     db.add(monitor)
     await db.commit()
@@ -20,13 +21,13 @@ async def create_monitor(monitor_data: MonitorCreate, db: AsyncSession = Depends
 
 
 @router.get("/", response_model=list[MonitorResponse])
-async def list_monitors(db: AsyncSession = Depends(get_db)):
+async def list_monitors(db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
     result = await db.execute(select(Monitor).order_by(Monitor.created_at.desc()))
     return result.scalars().all()
 
 
 @router.get("/{monitor_id}", response_model=MonitorResponse)
-async def get_monitor(monitor_id: UUID, db: AsyncSession = Depends(get_db)):
+async def get_monitor(monitor_id: UUID, db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
     result = await db.execute(select(Monitor).where(Monitor.id == monitor_id))
     monitor = result.scalar_one_or_none()
     if not monitor:
@@ -35,7 +36,7 @@ async def get_monitor(monitor_id: UUID, db: AsyncSession = Depends(get_db)):
 
 
 @router.put("/{monitor_id}", response_model=MonitorResponse)
-async def update_monitor(monitor_id: UUID, monitor_data: MonitorUpdate, db: AsyncSession = Depends(get_db)):
+async def update_monitor(monitor_id: UUID, monitor_data: MonitorUpdate, db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
     result = await db.execute(select(Monitor).where(Monitor.id == monitor_id))
     monitor = result.scalar_one_or_none()
     if not monitor:
@@ -51,7 +52,7 @@ async def update_monitor(monitor_id: UUID, monitor_data: MonitorUpdate, db: Asyn
 
 
 @router.delete("/{monitor_id}", status_code=204)
-async def delete_monitor(monitor_id: UUID, db: AsyncSession = Depends(get_db)):
+async def delete_monitor(monitor_id: UUID, db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
     result = await db.execute(select(Monitor).where(Monitor.id == monitor_id))
     monitor = result.scalar_one_or_none()
     if not monitor:

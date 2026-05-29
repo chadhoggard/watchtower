@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     discord_webhook_url: str = ""
     cors_origins: str = "http://localhost:3000"
     degraded_threshold_ms: int = 2000
+    secret_key: str = "dev-secret-key-change-in-production"
+    access_token_expire_days: int = 30
 
     @property
     def resolved_database_url(self) -> str:

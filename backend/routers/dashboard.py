@@ -12,6 +12,7 @@ from schemas import (
     StatusPageMonitor,
     OverallStatus,
 )
+from utils.auth import get_current_user
 
 router = APIRouter(tags=["dashboard"])
 
@@ -42,7 +43,7 @@ async def get_latest_check(monitor_id, db: AsyncSession):
 
 
 @router.get("/api/dashboard", response_model=DashboardResponse)
-async def get_dashboard(db: AsyncSession = Depends(get_db)):
+async def get_dashboard(db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
     result = await db.execute(select(Monitor).order_by(Monitor.created_at.desc()))
     monitors = result.scalars().all()
 
