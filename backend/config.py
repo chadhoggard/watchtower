@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     degraded_threshold_ms: int = 2000
     secret_key: str = "dev-secret-key-change-in-production"
     access_token_expire_days: int = 30
+    watchtower_api_key: str = ""
 
     @property
     def resolved_database_url(self) -> str:

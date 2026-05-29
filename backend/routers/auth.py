@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func, select
+from fastapi import APIRouter, Depends, Header, HTTPException, status
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional
 
+from config import get_settings
 from database import get_db
 from models import User
 from schemas import Token, UserCreate, UserLogin, UserOut
@@ -41,3 +43,16 @@ async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
 @router.get("/me", response_model=UserOut)
 async def me(user: User = Depends(get_current_user)):
     return user
+
+
+@router.delete("/reset-users", status_code=204)
+async def reset_users(
+    db: AsyncSession = Depends(get_db),
+    x_api_key: Optional[str] = Header(None, alias="X-Api-Key"),
+):
+    """Clear all users — protected by WATCHTOWER_API_KEY for one-time account reset."""
+    settings = get_settings()
+    if not x_api_key or x_api_key != settings.watchtower_api_key:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+    await db.execute(delete(User))
+    await db.commit()

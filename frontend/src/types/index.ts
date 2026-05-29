@@ -73,3 +73,15 @@ export interface StatusPageResponse {
   overall_status: "All Systems Operational" | "Partial Outage" | "Major Outage";
   monitors: StatusPageMonitor[];
 }
+
+export interface User {
+  id: string;
+  email: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface AuthToken {
+  access_token: string;
+  token_type: string;
+}
