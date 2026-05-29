@@ -37,6 +37,7 @@ class Monitor(Base):
     environment: Mapped[str] = mapped_column(SAEnum(EnvironmentTag), default=EnvironmentTag.prod)
     description: Mapped[str] = mapped_column(Text, nullable=True)
     current_status: Mapped[str] = mapped_column(SAEnum(MonitorStatus), default=MonitorStatus.unknown)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False, server_default="0")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

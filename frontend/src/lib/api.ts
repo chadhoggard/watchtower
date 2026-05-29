@@ -64,6 +64,15 @@ export async function deleteMonitor(id: string): Promise<void> {
   return fetchApi<void>(`/api/monitors/${id}`, { method: "DELETE" });
 }
 
+export async function reorderMonitors(
+  items: { id: string; sort_order: number }[],
+): Promise<void> {
+  return fetchApi<void>("/api/monitors/reorder", {
+    method: "PATCH",
+    body: JSON.stringify(items),
+  });
+}
+
 // Health Checks
 export async function getHealthChecks(
   monitorId: string,

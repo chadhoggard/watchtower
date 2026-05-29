@@ -44,7 +44,7 @@ async def get_latest_check(monitor_id, db: AsyncSession):
 
 @router.get("/api/dashboard", response_model=DashboardResponse)
 async def get_dashboard(db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
-    result = await db.execute(select(Monitor).order_by(Monitor.created_at.desc()))
+    result = await db.execute(select(Monitor).order_by(Monitor.sort_order, Monitor.created_at.desc()))
     monitors = result.scalars().all()
 
     items = []
@@ -85,7 +85,7 @@ async def get_dashboard(db: AsyncSession = Depends(get_db), _=Depends(get_curren
 
 @router.get("/api/status", response_model=StatusPageResponse)
 async def get_status_page(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Monitor).order_by(Monitor.name))
+    result = await db.execute(select(Monitor).order_by(Monitor.sort_order, Monitor.name))
     monitors = result.scalars().all()
 
     status_monitors = []

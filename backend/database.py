@@ -25,3 +25,9 @@ async def init_db():
     import models  # noqa: F401
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Add sort_order column if it doesn't exist (for existing deployments)
+        await conn.execute(
+            __import__("sqlalchemy").text(
+                "ALTER TABLE monitors ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0"
+            )
+        )

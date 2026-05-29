@@ -8,6 +8,7 @@ export interface Monitor {
   environment: "dev" | "staging" | "prod";
   description: string | null;
   current_status: "healthy" | "degraded" | "down" | "unknown";
+  sort_order: number;
   created_at: string;
   updated_at: string;
 }

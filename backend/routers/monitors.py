@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from uuid import UUID
+from typing import List
+from pydantic import BaseModel
 
 from database import get_db
 from models import Monitor
@@ -22,8 +24,23 @@ async def create_monitor(monitor_data: MonitorCreate, db: AsyncSession = Depends
 
 @router.get("/", response_model=list[MonitorResponse])
 async def list_monitors(db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
-    result = await db.execute(select(Monitor).order_by(Monitor.created_at.desc()))
+    result = await db.execute(select(Monitor).order_by(Monitor.sort_order, Monitor.created_at.desc()))
     return result.scalars().all()
+
+
+class ReorderItem(BaseModel):
+    id: UUID
+    sort_order: int
+
+
+@router.patch("/reorder", status_code=204)
+async def reorder_monitors(items: List[ReorderItem], db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
+    for item in items:
+        result = await db.execute(select(Monitor).where(Monitor.id == item.id))
+        monitor = result.scalar_one_or_none()
+        if monitor:
+            monitor.sort_order = item.sort_order
+    await db.commit()
 
 
 @router.get("/{monitor_id}", response_model=MonitorResponse)

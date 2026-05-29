@@ -54,6 +54,7 @@ class MonitorResponse(BaseModel):
     environment: EnvironmentTag
     description: Optional[str]
     current_status: MonitorStatus
+    sort_order: int
     created_at: datetime
     updated_at: datetime
 
