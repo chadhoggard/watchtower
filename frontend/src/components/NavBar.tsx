@@ -2,16 +2,19 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
 export default function NavBar() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+
+  if (pathname === "/status") return null;
 
   function handleLogout() {
     logout();
-    router.push("/login");
+    router.push("/status");
   }
 
   return (
